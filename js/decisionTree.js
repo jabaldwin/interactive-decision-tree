@@ -1,202 +1,91 @@
-var treeData;
-$(document).ready( function(){
-	
-	windowWidth = $('#tree-window').outerWidth( false );
-	sliderWidth = 0;
-	slideTime = 300;
-	branches = new Array();
-	options = {};
-	var thisURL = new String(document.location);
-	var urlParts = thisURL.split('?');
-	loadData( urlParts[1] );
-	
-	$('#tree-reset').click( function(e){
-	  console.log("RESET");
-	  $('#tree-window').scrollTo( 0 + 'px', { axis:'x', 
-	                                          duration: slideTime, 
-	                                          easing:'easeInOutExpo',
-	                                          onAfter: function(){
-	                                            $('.tree-content-box:gt(0)').remove();
-	                                          } //onAfter
-                                          } // options
-                              ); //scrollTo
-  }); //click
-		
+var branchHistory = []; // for storing history
+
+// gather querystring params
+var params = document.location.search.substr(1).split('&');
+if(params[0] != ''){ loadData(params[0]); }
+
+setActive();
+
+// handle branch link clicks
+$('.tree').on('click', 'li li a', function(e){
+  e.preventDefault();
+  targetBranch = $(e.target).attr('href');
+  branchHistory.push('#'+$('.tree li.active').attr('id'));
+  $('.tree li.active').removeClass('active').addClass('previous');
+  $(targetBranch).addClass('active');
+  addBackTo(targetBranch);
 });
 
-function debug( str ){
-	$('#debug').append( str + '<br />' );
+// handle back link clicks
+$('.tree').on('click', 'a.back-branch', function(e){
+  e.preventDefault();
+  $('.tree li.active').removeClass('active')
+  targetBranch = branchHistory.pop();
+  $(targetBranch).removeClass('previous').addClass('active');
+  addBackTo(targetBranch);
+});
+
+// add the back link to the active branch
+function addBackTo(targetBranch){
+  $('a.back-branch').remove();
+  if(branchHistory.length > 0){
+    $(targetBranch).append(
+      '<a href="#" class="back-branch">&laquo; back</a>'
+    );
+  }
 }
 
-function loadData( id ){
-	$.ajax({
-		type: "GET", 
-		url: "xml/tree" + id + ".xml", 
-		dataType: "xml", 
-		success: function( xml ){
-			buildNodes( xml );
-		}
-	});
+// jump to specified branch, if provided
+function setActive(){
+  if(params.length > 1){
+    $('#'+params[1]).addClass('active');
+  }else{
+    $('.tree>li:first-child').addClass('active');
+  }
 }
 
-function TreeBranch(){
-	this.id = '';
-	this.content = '';
-	this.forkIDs = new Array();
-	this.forkLabels = new Array();
-}
-
-function parseOptions( xmlData ){
-  
-}
-
-function buildNodes( xmlData ){
-	var maxDepth = 0;
-	treeData = xmlData;
-	$(xmlData).find('branch').each(
-		function(){
-			var branch = new TreeBranch();
-			branch.id = $(this).attr('id');
-			branch.content = $(this).find('content').text();
-			$(this).find('fork').each(
-				function(){
-					branch.forkIDs.push( $(this).attr('target') );
-					branch.forkLabels.push( $(this).text() );
-				}
-			);
-			branches.push( branch );
-			var branchDepthParts = branch.id.split('.');
-			if( branchDepthParts.length > maxDepth ){
-				maxDepth = branchDepthParts.length;
-			}
-	});
-	sliderWidth = windowWidth * maxDepth;
-	$('#tree-slider').width( sliderWidth );
-	var resetText = $(xmlData).find('resetText').text();
-	$('#tree-reset').html( resetText );
-	showBranch( 1 );
-}
-
-function resetActionLinks(){
-	$('.decision-links a').unbind( 'click' );
-	$('a.back-link').unbind( 'click' );
-	
-	$('.decision-links a').click( function(e){
-		if( !$(this).attr('href') ){
-			showBranch( $(this).attr('id') );
-		}
-	});
-	$('a.back-link').click( function(){
-		$('#tree-window').scrollTo( '-=' + windowWidth + 'px', { axis:'x', duration:slideTime, easing:'easeInOutExpo' } );
-		$(this).parent().fadeOut( slideTime, function(){
-			$(this).remove();
-		});
-	});
-}
-
-function showBranch( id ){
-	for(i = 0; i < branches.length; i++ ){
-		if( branches[i].id == id ){
-			var currentBranch = branches[i];
-			break;
-		}
-	}
-	var decisionLinksHTML = '<div class="decision-links">';
-	for( d = 0; d < currentBranch.forkIDs.length; d++ ){
-		var link = '';
-		var forkContent = $(treeData).find('branch[id="' + currentBranch.forkIDs[d] + '"]').find('content').text();
-		if( forkContent.indexOf('http://') == 0 || forkContent.indexOf('https://') == 0 ){
-			link = 'href="' + forkContent + '"'
-		}
-		decisionLinksHTML += '<a ' + link + ' id="' + currentBranch.forkIDs[d] + '">' + currentBranch.forkLabels[d] + '</a>';
-	}
-	decisionLinksHTML += '</div>';
-	var branchHTML = '<div id="branch-' + currentBranch.id + '" class="tree-content-box"><div class="content">' + currentBranch.content + '</div>' + decisionLinksHTML;
-	if( currentBranch.id != 1 ){
-		branchHTML += '<a class="back-link">&laquo; Back</a>';
-	}
-	branchHTML += '</div>';
-	$('#tree-slider').append( branchHTML );
-	resetActionLinks();
-	if( currentBranch.id != 1 ){
-		$('#tree-window').scrollTo( '+=' + windowWidth + 'px', { axis:'x', duration:slideTime, easing:'easeInOutExpo' } );
-	}
-	// add last-child class for IE
-	$('.decision-links a:last').addClass( 'last-child' );
-}
-
-
-/*
-Useful timer functions used for menu mouseout delays
-Source: http://www.codingforums.com/showthread.php?t=10531
-*/
-function Timer(){
-    this.obj = (arguments.length)?arguments[0]:window;
-    return this;
-}
-
-// The set functions should be called with:
-// - The name of the object method (as a string) (required)
-// - The millisecond delay (required)
-// - Any number of extra arguments, which will all be
-//   passed to the method when it is evaluated.
-
-Timer.prototype.setInterval = function(func, msec){
-    var i = Timer.getNew();
-    var t = Timer.buildCall(this.obj, i, arguments);
-    Timer.set[i].timer = window.setInterval(t,msec);
-    return i;
-}
-Timer.prototype.setTimeout = function(func, msec){
-    var i = Timer.getNew();
-    Timer.buildCall(this.obj, i, arguments);
-    Timer.set[i].timer = window.setTimeout("Timer.callOnce("+i+");",msec);
-    return i;
-}
-
-// The clear functions should be called with
-// the return value from the equivalent set function.
-
-Timer.prototype.clearInterval = function(i){
-    if(!Timer.set[i]) return;
-    window.clearInterval(Timer.set[i].timer);
-    Timer.set[i] = null;
-}
-Timer.prototype.clearTimeout = function(i){
-    if(!Timer.set[i]) return;
-    window.clearTimeout(Timer.set[i].timer);
-    Timer.set[i] = null;
-}
-
-// Private data
-
-Timer.set = new Array();
-Timer.buildCall = function(obj, i, args){
-    var t = "";
-    Timer.set[i] = new Array();
-    if(obj != window){
-        Timer.set[i].obj = obj;
-        t = "Timer.set["+i+"].obj.";
+// load XML data
+function loadData(id){
+  $.ajax({
+    type: "GET", 
+    url: "xml/tree" + id + ".xml", 
+    dataType: "xml", 
+    success: function(xml){
+      buildHTML(xml);
     }
-    t += args[0]+"(";
-    if(args.length > 2){
-        Timer.set[i][0] = args[2];
-        t += "Timer.set["+i+"][0]";
-        for(var j=1; (j+2)<args.length; j++){
-            Timer.set[i][j] = args[j+2];
-            t += ", Timer.set["+i+"]["+j+"]";
-    }}
-    t += ");";
-    Timer.set[i].call = t;
-    return t;
+  });
 }
-Timer.callOnce = function(i){
-    if(!Timer.set[i]) return;
-    eval(Timer.set[i].call);
-    Timer.set[i] = null;
+
+// construct HTML from XML (likely can be simplfied)
+function buildHTML(xml){
+  $('.tree').empty();
+  $(xml).find('branch').each(
+    function(){
+      branchID = dasherize($(this).attr('id'));
+      $('.tree').append(
+        '<li id="branch-'+branchID+'">'
+          +'<p>'+$(this).find('content').html()+'</p>'
+        +'</li>'
+      );
+      if($(this).find('fork').length > 0){
+        html = '<ul>';
+        $(this).find('fork').each(
+          function(){
+            targetID = dasherize($(this).attr('target'));
+            html += '<li><a href="#branch-'+targetID+'">';
+            html += $(this).text();
+            html += '</a></li>';
+          }
+        );
+        html += '</ul>';
+        $('#branch-'+branchID).append(html);
+      }
+    }
+  );
+  setActive();
 }
-Timer.getNew = function(){
-    var i = 0;
-    while(Timer.set[i]) i++;
-    return i;
+
+// helper to remove dots from branchIDs so jQuery doesn't try to be too clever
+function dasherize(str){
+  return str.replace(/\.+/g,'-');
 }

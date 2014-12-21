@@ -1,3 +1,5 @@
+**Update**: This version is a total rewrite of the client side. Leaner and easier to read. 
+
 # Introduction
 
 The Interactive Decision Tree is a web-based tool that will walk users through a decision process by asking questions to lead them down the appropriate decision path. Think of it as a user-friendly flow chart.
@@ -7,6 +9,19 @@ Decision tree data is stored as standard XML and the "viewer" is made up of HTML
 Also included is a PHP-driven decision tree editor. This allows users to create the underlying XML data for a decision tree more easily than manually editing XML files. The editor requires PHP version 5 or higher to be running on your web server. Since the editor far simplifies the process of creating decision trees, it is recommended that you use it as well. 
 
 A functional demo can be viewed at [hungry-media.com](http://www.hungry-media.com/code/interactive-decision-tree/demo.html?0001) and an example video on [YouTube](http://www.youtube.com/embed/ngcjYuJHZ4Q "View example on YouTube")
+
+**New Feature**: You may now jump directly to a branch of your tree by appending it's ID as a querystring parameter.
+
+## Examples:
+
+Start from the top:
+```
+http://localhost/showTree.html?0001
+```
+Start from a specific branch:
+```
+http://localhost/showTree.html?0001&branch-1-1
+```
 
 # Installation
 
