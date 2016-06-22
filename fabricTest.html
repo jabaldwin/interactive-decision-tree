@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Fabric.js Test</title>
+</head>
+<body>
+<canvas id="c" width="600" height="500" style="border: 1px solid black;"></canvas>
+<script src="js/lib/fabric.min.js"></script>
+
+<script id="main">(function() {
+	function QuestionBox (text, x, y) {
+		var box = this;
+
+		this.syncCircles = function() {
+			this.top.left = this.group.left;
+			this.top.top = this.group.top - 0.5 * this.group.height;
+			this.bottom.left = this.group.left;
+			this.bottom.top = this.group.top + 0.5 * this.group.height;
+		}
+
+		this.rect = new fabric.Rect({
+			originX: 'center',
+			originY: 'center',
+			fill: 'white',
+			stroke: 'black',
+			width: 200,
+			height: 100,
+			rx: 10,
+			ry: 10
+		});
+
+		this.text = new fabric.Textbox(text, {
+			fontSize: 16,
+			width: this.rect.width - 20,
+			originX: 'center',
+			originY: 'center',
+			textAlign: 'center',
+			editable: false,
+			cursorWidth: 0
+		});
+
+		this.group = new fabric.Group([this.rect, this.text], {
+			top: x,
+			left: y,
+			originX: 'center',
+			originY: 'center'
+		});
+
+		this.group.on('mouseover', function() {
+			box.rect.setFill('#F0F8FF');
+			canvas.renderAll();
+		});
+
+		this.group.on('mousedown', function() {
+			box.rect.setFill('#AFD0D6');
+			canvas.renderAll();
+		});
+
+		this.group.on('mouseup', function() {
+			box.rect.setFill('#F0F8FF');
+			canvas.renderAll();
+		});
+
+		this.group.on('mouseout', function() {
+			box.rect.setFill('white');
+			canvas.renderAll();
+		});
+
+		var circleOpts = {
+			radius: 15,
+			fill: 'green',
+			originX: 'center',
+			originY: 'center',
+			selectable: false
+		};
+
+		this.top = new fabric.Circle(circleOpts);
+		this.bottom = new fabric.Circle(circleOpts);
+		this.syncCircles();
+
+		this.group.on('moving', function() {
+			box.syncCircles();
+			canvas.renderAll();
+		});
+
+		canvas.add(this.group);
+		canvas.add(this.top);
+		canvas.add(this.bottom);
+	}
+
+	var canvas = this.__canvas = new fabric.Canvas('c');
+	fabric.Object.prototype.hasControls = false;
+	fabric.Object.prototype.hasBorders = false;
+
+	var box = new QuestionBox('Lorem ipsum dolor sit amet, consectetur adipiscing elit?', 100, 200);
+})();
+</script>
+
+</body>
+</html>
